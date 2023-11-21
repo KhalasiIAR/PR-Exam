@@ -1,69 +1,62 @@
+#ARTIFICIAL NEURAL NETWORK
+import pandas as pd
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-class NeuralNetwork:
-    def __init__(self, input_size, hidden_size, output_size, learning_rate=0.01):
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.learning_rate = learning_rate
+df=pd.read_csv("/content/Churn_Modelling.csv")
+#Drop row number, customer id, Surname
 
-        # Initialize weights and biases
-        self.weights_input_hidden = np.random.randn(input_size, hidden_size)
-        self.biases_hidden = np.zeros((1, hidden_size))
-        self.weights_hidden_output = np.random.randn(hidden_size, output_size)
-        self.biases_output = np.zeros((1, output_size))
+df.info()
 
-    def sigmoid(self, x):
-        return 1 / (1 + np.exp(-x))
+df.head()
 
-    def sigmoid_derivative(self, x):
-        return x * (1 - x)
+df.drop('RowNumber', axis='columns', inplace=True)
+df.drop('CustomerId', axis='columns', inplace=True)
+df.drop('Surname', axis='columns', inplace=True)
 
-    def forward_pass(self, inputs):
-        # Hidden layer
-        self.hidden_layer_input = np.dot(inputs, self.weights_input_hidden) + self.biases_hidden
-        self.hidden_layer_output = self.sigmoid(self.hidden_layer_input)
+Ext_NO=df[df.Exited==0].Tenure
+Ext_YES=df[df.Exited==1].Tenure
 
-        # Output layer
-        self.output_layer_input = np.dot(self.hidden_layer_output, self.weights_hidden_output) + self.biases_output
-        self.output_layer_output = self.sigmoid(self.output_layer_input)
+plt.xlabel('Tenure')
+plt.ylabel('No. of customers')
+plt.title('Customer Prediction')
+plt.hist([Ext_NO, Ext_YES], color=['green', 'red'], label=['Exited=No', 'Exited=Yes'])
+plt.legend()
+df['Gender'].replace({'Female':1, 'Male':0}, inplace=True)
+df.head()
 
-    def backward_pass(self, inputs, target):
-        # Output layer
-        output_error = target - self.output_layer_output
-        output_delta = output_error * self.sigmoid_derivative(self.output_layer_output)
+one_hot=pd.get_dummies(df['Geography'])
+one_hot
 
-        # Hidden layer
-        hidden_layer_error = output_delta.dot(self.weights_hidden_output.T)
-        hidden_layer_delta = hidden_layer_error * self.sigmoid_derivative(self.hidden_layer_output)
+df=df.join(one_hot)
 
-        # Update weights and biases
-        self.weights_hidden_output += self.learning_rate * self.hidden_layer_output.T.dot(output_delta)
-        self.biases_output += np.sum(output_delta, axis=0, keepdims=True)
-        self.weights_input_hidden += self.learning_rate * inputs.T.dot(hidden_layer_delta)
-        self.biases_hidden += np.sum(hidden_layer_delta, axis=0, keepdims=True)
+df.drop('Geography', axis='columns', inplace=True)
+df.shape
 
-    def train(self, inputs, targets, epochs):
-        for epoch in range(epochs):
-            for i in range(len(inputs)):
-                self.forward_pass(inputs[i])
-                self.backward_pass(inputs[i], targets[i])
+#Divide the  Dependent or Independent Variable
+#Independent Variables
 
-    def predict(self, inputs):
-        self.forward_pass(inputs)
-        return self.output_layer_output
+X=df.iloc[:,:-1]
+y=df.iloc[:,-1]
+y.shape
+y.info()
+X.info()
 
-# Example usage
-# Assume a binary classification problem
-inputs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-targets = np.array([[0], [1], [1], [0]])
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test=train_test_split(X,y,test_size=0.2, random_state=5)
 
-# Initialize and train the neural network
-nn = NeuralNetwork(input_size=2, hidden_size=4, output_size=1, learning_rate=0.1)
-nn.train(inputs, targets, epochs=10000)
+#Apply the Neural Network
+import tensorflow as tf
+from tensorflow import keras
+model=keras.Sequential([keras.layers.Dense(30, activation='relu'),
+                        keras.layers.Dense(15, activation='relu'),
+                        keras.layers.Dense(1, activation='sigmoid')])
 
-# Test the trained neural network
-for i in range(len(inputs)):
-    prediction = nn.predict(inputs[i])
-    print(f"Input: {inputs[i]}, Predicted Output: {prediction}")
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+model.fit(X_train, y_train, epochs=150)
+
+from tensorflow.keras.utils import plot_model
+plot_model(model, to_file='ann_diagram.png', show_shapes=True, show_layer_names=True)
 
