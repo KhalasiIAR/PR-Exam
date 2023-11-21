@@ -1,0 +1,62 @@
+#ARTIFICIAL NEURAL NETWORK
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df=pd.read_csv("/content/Churn_Modelling.csv")
+#Drop row number, customer id, Surname
+
+df.info()
+
+df.head()
+
+df.drop('RowNumber', axis='columns', inplace=True)
+df.drop('CustomerId', axis='columns', inplace=True)
+df.drop('Surname', axis='columns', inplace=True)
+
+Ext_NO=df[df.Exited==0].Tenure
+Ext_YES=df[df.Exited==1].Tenure
+
+plt.xlabel('Tenure')
+plt.ylabel('No. of customers')
+plt.title('Customer Prediction')
+plt.hist([Ext_NO, Ext_YES], color=['green', 'red'], label=['Exited=No', 'Exited=Yes'])
+plt.legend()
+df['Gender'].replace({'Female':1, 'Male':0}, inplace=True)
+df.head()
+
+one_hot=pd.get_dummies(df['Geography'])
+one_hot
+
+df=df.join(one_hot)
+
+df.drop('Geography', axis='columns', inplace=True)
+df.shape
+
+#Divide the  Dependent or Independent Variable
+#Independent Variables
+
+X=df.iloc[:,:-1]
+y=df.iloc[:,-1]
+y.shape
+y.info()
+X.info()
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test=train_test_split(X,y,test_size=0.2, random_state=5)
+
+#Apply the Neural Network
+import tensorflow as tf
+from tensorflow import keras
+model=keras.Sequential([keras.layers.Dense(30, activation='relu'),
+                        keras.layers.Dense(15, activation='relu'),
+                        keras.layers.Dense(1, activation='sigmoid')])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+model.fit(X_train, y_train, epochs=150)
+
+from tensorflow.keras.utils import plot_model
+plot_model(model, to_file='ann_diagram.png', show_shapes=True, show_layer_names=True)
+
